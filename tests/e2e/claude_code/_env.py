@@ -13,6 +13,8 @@ from typing import Mapping, NamedTuple
 
 import pytest
 
+from e2e_gateway import Gateway, build_gateway
+
 
 class ProxyConfig(NamedTuple):
     base_url: str
@@ -72,3 +74,30 @@ def require_proxy(
     if cfg is None:
         _fail_missing_proxy_env(compat_result)
     return cfg
+
+
+class GatewayConfig(NamedTuple):
+    gateway: Gateway
+    api_key: str
+
+
+def require_gateway(
+    compat_result,
+    *,
+    env: Mapping[str, str] | None = None,
+) -> GatewayConfig:
+    """Return the shared ``Gateway`` plus the master key the HTTP probes
+    authenticate with, or hard-fail the test.
+
+    Both planes of the built ``Gateway`` point at the one resolved base URL, so
+    the probes reuse the shared transport (split control/data-plane routing,
+    timeout, typed ``Result``) rather than hand-rolling ``httpx``. The api_key is
+    returned alongside because the probes call ``/v1/messages`` with the master
+    key (the compat matrix's credential), the same way the CLI rows do."""
+    cfg = require_proxy(compat_result, env=env)
+    gateway = build_gateway(
+        base_url=cfg.base_url,
+        master_key=cfg.api_key,
+        control_plane_base_url=cfg.base_url,
+    )
+    return GatewayConfig(gateway=gateway, api_key=cfg.api_key)
