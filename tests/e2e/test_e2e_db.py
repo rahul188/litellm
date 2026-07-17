@@ -41,7 +41,15 @@ def test_cleanup_gates_on_opt_in_and_test_run(
 
 
 def test_cleanup_swallows_truncate_failure() -> None:
-    def boom() -> None:
-        raise RuntimeError("db unreachable")
+    class _Boom:
+        def __init__(self) -> None:
+            self.calls = 0
 
-    assert run_spend_log_cleanup(opt_in="1", e2e_test_ran=True, truncate=boom) is True
+        def __call__(self) -> None:
+            self.calls += 1
+            raise RuntimeError("db unreachable")
+
+    boom = _Boom()
+    ran = run_spend_log_cleanup(opt_in="1", e2e_test_ran=True, truncate=boom)
+    assert boom.calls == 1
+    assert ran is True

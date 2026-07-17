@@ -21,13 +21,14 @@ def run_spend_log_cleanup(
     *, opt_in: str | None, e2e_test_ran: bool, truncate: Callable[[], None]
 ) -> bool:
     """Invoke `truncate` iff the destructive spend-log reset is both opted into
-    and warranted, returning whether it ran.
+    and warranted, returning whether the truncate was attempted.
 
     The truncate fires only when the opt-in value is exactly "1" AND an e2e test
     body actually ran. Any other opt-in value (unset, "0", "true", "") leaves the
     DB untouched, so the destructive path is never armed by the env var's mere
     presence or by a test run on its own. Best-effort: a truncate failure is
-    swallowed so cleanup never fails the session.
+    swallowed so cleanup never fails the session, so the returned bool reports
+    that the reset was attempted, not that the DB call succeeded.
     """
     if opt_in != "1" or not e2e_test_ran:
         return False

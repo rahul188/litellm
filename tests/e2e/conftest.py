@@ -117,11 +117,15 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     (`E2E_RESET_SPEND_LOGS=1`) and an e2e test body actually ran; otherwise a
     `DATABASE_URL` pointing at a shared or staging instance is left untouched.
     Best-effort: a cleanup failure (no DB reachable) must not fail the run."""
+    e2e_test_ran = session.stash.get(_E2E_TEST_RAN, False)
     run_spend_log_cleanup(
         opt_in=os.environ.get(RESET_OPT_IN_ENV),
-        e2e_test_ran=session.stash.get(_E2E_TEST_RAN, False),
+        e2e_test_ran=e2e_test_ran,
         truncate=reset_spend_logs,
     )
+
+    if not e2e_test_ran:
+        return
 
     try:
         from bob_the_builder import remediate
